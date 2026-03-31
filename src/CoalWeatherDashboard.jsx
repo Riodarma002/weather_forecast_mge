@@ -574,27 +574,24 @@ export default function CoalWeatherDashboard() {
       {/* ── Header ── */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12, padding:"0 4px"}}>
         <div style={{display:"flex",alignItems:"center",gap:16}}>
-          {/* Logo SVG (Minimalist Radar/Compass) */}
+          {/* Logo SVG Image */}
           <div style={{
-            width:38,height:38,borderRadius:"10px",background:isDark?"#18181b":"#ffffff", border:`1px solid ${T.cardBorder}`,
-            boxShadow:T.cardShadow,display:"flex",alignItems:"center",justifyContent:"center", color:isDark?"#fff":"#000"
+            width:42,height:42,borderRadius:"10px",background:isDark?"#18181b":"#ffffff", border:`1px solid ${T.cardBorder}`,
+            boxShadow:T.cardShadow,display:"flex",alignItems:"center",justifyContent:"center", color:isDark?"#fff":"#000", overflow:"hidden"
           }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
+            <img src="/logo_mge.png" alt="MGE Logo" style={{width:"100%", height:"100%", objectFit:"contain", padding:"4px"}} />
           </div>
           <div>
             <div style={{fontSize:20, letterSpacing:1, color:T.text, display:"flex", alignItems:"center"}}>
-              <span style={{fontWeight:800}}>COAL</span>
-              <span style={{fontWeight:300, opacity:0.9}}>WEATHER</span>
+              <span style={{fontWeight:800}}>MGE COAL</span>
+              <span style={{fontWeight:300, opacity:0.9, marginLeft:4}}>WEATHER</span>
               <span style={{
                 fontSize:10, fontWeight:800, marginLeft:12, padding:"3px 8px", 
                 borderRadius:12, background:"rgba(59,130,246,0.15)", color:"#3b82f6", letterSpacing:1
               }}>OPS</span>
             </div>
             <div style={{fontSize:10,fontWeight:600,color:T.textDim,letterSpacing:2,marginTop:2}}>
-              TABANG COMMAND CENTER
+              Site PT. GAM and Site PT. Indexim
             </div>
           </div>
         </div>
