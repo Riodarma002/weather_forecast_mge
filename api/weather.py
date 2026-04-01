@@ -12,7 +12,7 @@ import os
 
 PITS = {
     "north": {"lat": 1.157896, "lon": 117.674641, "name": "Pit Utara"},
-    "south": {"lat": 1.25875, "lon": 117.48125, "name": "Pit Selatan"}
+    "south": {"lat": 1.033785, "lon": 117.675995, "name": "Pit Selatan"}
 }
 
 BMKG_API_BASE = "https://api.bmkg.go.id/publik/prakiraan-cuaca"
