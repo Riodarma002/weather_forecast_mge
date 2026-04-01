@@ -271,23 +271,39 @@ def generate_weather_data():
                             break
 
                 t_final = t_om
-                hu_final = int(bmkg["hu"]) if (bmkg and bmkg.get("hu") is not None) else hu_om
+                hu_final = hu_om
                 ws_final = ws_om
-                wd_final = bmkg["wd"] if (bmkg and bmkg.get("wd") not in [None, "?"]) else wd_str_om
-
-                tcc_raw  = bmkg["tcc"] if (bmkg and bmkg.get("tcc") is not None) else tcc_om
-                tcc_final = int(tcc_raw) if tcc_raw is not None else tcc_om
-
-                vs_km_final   = bmkg["vs_km"]   if (bmkg and bmkg.get("vs_km")   is not None) else vs_km_om
-                vs_text_final = bmkg["vs_text"]  if (bmkg and bmkg.get("vs_text")) else f"{vs_km_final} km"
-
-                wd_desc    = bmkg["weather_desc"]    if (bmkg and bmkg.get("weather_desc"))    else ""
-                wd_desc_en = bmkg["weather_desc_en"] if (bmkg and bmkg.get("weather_desc_en")) else ""
-
-                risk = calculate_risk(tp, ws_final, vs_km_final, tcc_final, h, tp_3h, tp_showers)
+                wd_final = wd_str_om
+                tcc_final = tcc_om
+                vs_km_final = vs_km_om
+                vs_text_final = f"{vs_km_final} km"
+                wd_desc = ""
+                wd_desc_en = ""
+                wc_final = wc
+                tp_final = tp
 
                 if bmkg:
                     bwc = bmkg.get("weather_code_bmkg", 0)
+                    wc_final = bwc
+                    
+                    # Logika Override: Jika BMKG bilang tidak hujan, paksa hujan jadi 0 agar grafik sesuai
+                    if bwc in [0, 1, 2, 3, 4, 5, 10, 45]:
+                        tp_final = 0.0
+                        if len(tp_window) > 0: tp_window[-1] = 0.0
+                        tp_3h = round(sum(tp_window), 1)
+
+                    if bmkg.get("t_bmkg") is not None: t_final = int(bmkg["t_bmkg"])
+                    if bmkg.get("hu") is not None: hu_final = int(bmkg["hu"])
+                    if bmkg.get("wd") not in [None, "?"]: wd_final = bmkg["wd"]
+                    if bmkg.get("tcc") is not None: tcc_final = int(bmkg["tcc"])
+                    if bmkg.get("vs_km") is not None: vs_km_final = bmkg["vs_km"]
+                    if bmkg.get("vs_text"): vs_text_final = bmkg["vs_text"]
+                    if bmkg.get("weather_desc"): wd_desc = bmkg["weather_desc"]
+                    if bmkg.get("weather_desc_en"): wd_desc_en = bmkg["weather_desc_en"]
+
+                risk = calculate_risk(tp_final, ws_final, vs_km_final, tcc_final, h, tp_3h, tp_showers)
+
+                if bmkg:
                     if bwc in [95, 97]:
                         risk = "critical"
                     elif bwc in [63, 65] and risk in ["low", "medium"]:
@@ -296,9 +312,9 @@ def generate_weather_data():
                 day_hours.append({
                     "h":             h,
                     "timeStr":       f"{h:02d}:00",
-                    "wc":            wc,
+                    "wc":            wc_final,
                     "t":             t_final,
-                    "tp":            tp,
+                    "tp":            tp_final,
                     "tp_rain":        tp_rain,
                     "tp_showers":     tp_showers,
                     "tp_3h":          tp_3h,
