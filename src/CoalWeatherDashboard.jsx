@@ -37,7 +37,7 @@ const RISK_CONFIG = {
 
 const PIT_DATA = {
   north: { name:"Pit Utara", lat:1.157896, lon:117.674641 },
-  south: { name:"Pit Selatan", lat:1.033785, lon:117.675995 },
+  south: { name:"Pit Selatan", lat:1.25875, lon:117.48125 },
 };
 
 
