@@ -970,7 +970,15 @@ export default function CoalWeatherDashboard() {
         setError(err.message);
       }
     };
+    
+    // Tarikan data pertama saat dashboard dibuka
     fetchWeather();
+
+    // Timer Auto-Refresh setiap 59 menit (3.540.000 ms) agar lolos limitasi / cache expiry yang 1 jam (3600 detik)
+    const intervalTimer = setInterval(fetchWeather, 3540000);
+    
+    // Cleanup timer ketika komponen dihentikan
+    return () => clearInterval(intervalTimer);
   }, []);
 
   if (error) {
