@@ -612,19 +612,19 @@ export default function CoalWeatherDashboard() {
           
           {/* Clock & Date Pill */}
           <div style={{
-            display:"flex", alignItems:"center", gap:16, padding:"6px 16px 6px 20px",
+            display:"flex", alignItems:"center", gap:16, padding:"8px 24px",
             background:T.cardBg, border:`1px solid ${T.cardBorder}`, borderRadius:24,
             boxShadow:T.cardShadow, backdropFilter:"blur(10px)"
           }}>
-            <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", paddingRight:16, borderRight:`1px solid ${T.toggleBorder || T.cardBorder}`}}>
+            <div style={{display:"flex", alignItems:"center", gap:8, paddingRight:16, borderRight:`1px solid ${T.toggleBorder || T.cardBorder}`}}>
               <div style={{fontFamily:"'JetBrains Mono', monospace",fontSize:18,fontWeight:800,letterSpacing:1,color:T.text,lineHeight:1}}>
                 {timeStr}
               </div>
-              <div style={{fontSize:9,fontWeight:700,color:T.textMuted,letterSpacing:1,marginTop:4}}>
+              <div style={{fontSize:11,fontWeight:800,color:isDark?"#60a5fa":"#3b82f6",letterSpacing:1, background:isDark?"rgba(96,165,250,0.15)":"rgba(59,130,246,0.1)", padding:"3px 8px", borderRadius:6}}>
                 WITA
               </div>
             </div>
-            <div style={{fontSize:11,fontWeight:600,color:T.textMuted,letterSpacing:1, textTransform:"uppercase"}}>
+            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,letterSpacing:1, textTransform:"uppercase"}}>
               {dateStr}
             </div>
           </div>
