@@ -6,6 +6,8 @@ body {
   overflow-x: hidden;
 }
 
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 /* Leaflet Custom Overrides */
 .leaflet-empty-icon {
   background: transparent !important;
@@ -29,3 +31,199 @@ body {
 .custom-weather-tooltip::before {
   display: none !important;
 }
+
+/* ─── NEW MGE HEADER STYLES ─── */
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.mge-header-shimmer {
+  position: relative;
+}
+.mge-header-shimmer::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2.5px;
+  background: linear-gradient(90deg, #f59e0b, #ea580c, #f59e0b);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+  z-index: 10;
+}
+
+.ops-pulse::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #22c55e;
+  border-radius: 50%;
+  animation: pulse-dot 2s ease-in-out infinite;
+  display: inline-block;
+}
+
+/* General Layout utilities for Header */
+.header-icon-btn:hover {
+  transform: translateY(-1px);
+}
+.alert-pill-hover:hover {
+  transform: translateY(-1px);
+}
+
+/* ── MGE PIT SECTION COMPONENTS ── */
+.pit-header {
+  border-radius: 10px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.pit-header-inner {
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+}
+
+.color-bar {
+  width: 5px;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+
+.pit-header-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 14px;
+}
+
+.pit-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pit-icon svg {
+  width: 18px; height: 18px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.pit-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pit-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.pit-name {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.5px;
+}
+
+.pit-hdiv {
+  width: 1px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.pit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 5px;
+  padding: 4px 9px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.meta-chip svg {
+  width: 12px; height: 12px;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+
+.pit-status-wrap {
+  margin-left: auto;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  border-width: 1px;
+  border-style: solid;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.status-badge .badge-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-badge .badge-dot.pulse {
+  animation: badgepulse 1.8s ease-in-out infinite;
+}
+
+@keyframes badgepulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.pit-last-update {
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.pit-last-update svg {
+  width: 11px; height: 11px;
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+
+.pit-bottom-strip {
+  height: 3px;
+  width: 100%;
+}
+

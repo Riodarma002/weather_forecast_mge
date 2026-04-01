@@ -519,10 +519,17 @@ export default function CoalWeatherDashboard() {
     const fetchWeather = async () => {
       try {
         // [Vercel API] Mengambil data dari Serverless Function Python
-        const response = await fetch('/api/weather');
-        if (!response.ok) {
-          throw new Error('Gagal mengambil data cuaca dari API');
+        let response = await fetch('/api/weather');
+        
+        // Fallback for local development if api isn't running
+        if (!response.ok || response.headers.get("content-type")?.includes("text/html")) {
+           response = await fetch('/weather_data.json');
         }
+
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data cuaca');
+        }
+        
         const d = await response.json();
         setWeatherData(d);
       } catch (err) {
@@ -571,61 +578,185 @@ export default function CoalWeatherDashboard() {
       display: "flex", flexDirection: "column", gap: "16px",
     }}>
 
-      {/* ── Header ── */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12, padding:"0 4px"}}>
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          {/* Logo SVG Image */}
-          <div style={{
-            width:42,height:42,borderRadius:"10px",background:isDark?"#18181b":"#ffffff", border:`1px solid ${T.cardBorder}`,
-            boxShadow:T.cardShadow,display:"flex",alignItems:"center",justifyContent:"center", color:isDark?"#fff":"#000", overflow:"hidden"
-          }}>
-            <img src="/logo_mge.png" alt="MGE Logo" style={{width:"100%", height:"100%", objectFit:"contain", padding:"4px"}} />
-          </div>
-          <div>
-            <div style={{fontSize:20, letterSpacing:1, color:T.text, display:"flex", alignItems:"center"}}>
-              <span style={{fontWeight:800}}>MGE COAL</span>
-              <span style={{fontWeight:300, opacity:0.9, marginLeft:4}}>WEATHER</span>
-              <span style={{
-                fontSize:10, fontWeight:800, marginLeft:12, padding:"3px 8px", 
-                borderRadius:12, background:"rgba(59,130,246,0.15)", color:"#3b82f6", letterSpacing:1
-              }}>OPS</span>
+      {/* ── NEW MGE Header ── */}
+      <div className="mge-header-shimmer" style={{
+        fontFamily: "'DM Sans', sans-serif",
+        background: isDark ? "#0a1628" : "#ffffff",
+        borderRadius: "12px", overflow: "hidden", position: "relative",
+        border: `1px solid ${isDark ? "rgba(255,255,255,0.07)" : "#e2e8f0"}`,
+        boxShadow: isDark ? "none" : "0 1px 4px rgba(0,0,0,0.06)"
+      }}>
+
+        <div style={{
+          display: "flex", alignItems: "center", padding: "14px 24px", gap: 0,
+          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9"}`
+        }}>
+          {/* Brand Section */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, flex: "0 0 auto" }}>
+            <div style={{
+              width: 42, height: 42, background: isDark ? "rgba(255,255,255,0.05)" : "#ffffff", borderRadius: 8,
+              border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+              boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.08)", overflow:"hidden"
+            }}>
+               <img src="/logo_mge.png" alt="MGE" style={{width:"100%", height:"100%", objectFit:"contain", padding:"4px"}} />
             </div>
-            <div style={{fontSize:10,fontWeight:600,color:T.textDim,letterSpacing:2,marginTop:2}}>
-              Site PT. GAM and Site PT. Indexim
+            <div>
+              <h1 style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 20, fontWeight: 700, color: isDark ? "#f8fafc" : "#0f172a", margin: 0, lineHeight: 1.1, letterSpacing: 0.5}}>
+                MGE <span style={{ color: isDark ? "#f59e0b" : "#ea580c" }}>COAL</span> WEATHER
+              </h1>
+              <p style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,0.45)" : "#94a3b8", margin: "2px 0 0 0", letterSpacing: 0.3 }}>
+                Monitoring Cuaca Operasional Real-time
+              </p>
+            </div>
+            <div className="ops-pulse" style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              background: isDark ? "rgba(245,158,11,0.12)" : "#fef3c7",
+              border: `1px solid ${isDark ? "rgba(245,158,11,0.3)" : "#fcd34d"}`,
+              color: isDark ? "#f59e0b" : "#b45309",
+              fontSize: 10, fontWeight: 600, letterSpacing: 1, padding: "3px 8px",
+              borderRadius: 4, marginLeft: 12, textTransform: "uppercase"
+            }}>
+              OPS LIVE
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 36, background: isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0", margin: "0 20px" }}></div>
+
+          {/* Sites Section */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+              border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+              borderRadius: 6, padding: "5px 10px", fontSize: 11,
+              color: isDark ? "rgba(255,255,255,0.7)" : "#475569", letterSpacing: 0.2
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3b82f6" }}></div>
+              JO GAM-Indexim — Pit Utara
+            </div>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+              border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+              borderRadius: 6, padding: "5px 10px", fontSize: 11,
+              color: isDark ? "rgba(255,255,255,0.7)" : "#475569", letterSpacing: 0.2
+            }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#f59e0b" }}></div>
+              JO GAM-Indexim — Pit Selatan
+            </div>
+          </div>
+
+          {/* Alert Strip (Static but layout ready) */}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "0 20px" }}>
+            <div className="alert-pill-hover" style={{
+              display: "flex", alignItems: "center", gap: 7, padding: "5px 12px", borderRadius: 20, fontSize: 11.5, fontWeight: 500, cursor: "pointer", transition: "transform 0.15s",
+              background: isDark ? "rgba(234,88,12,0.15)" : "#fff7ed",
+              border: `1px solid ${isDark ? "rgba(234,88,12,0.4)" : "#fed7aa"}`,
+              color: isDark ? "#fb923c" : "#c2410c",
+              boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.02)"
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              {activeWeather.north.risk !== "low" || activeWeather.south.risk !== "low" ? "Waspada Cuaca Aktif" : "Semua Area Aman"}
+            </div>
+            <div className="alert-pill-hover" style={{
+              display: "flex", alignItems: "center", gap: 7, padding: "5px 12px", borderRadius: 20, fontSize: 11.5, fontWeight: 500, cursor: "pointer", transition: "transform 0.15s",
+              background: isDark ? "rgba(34,197,94,0.1)" : "#eff6ff",
+              border: `1px solid ${isDark ? "rgba(34,197,94,0.3)" : "#bfdbfe"}`,
+              color: isDark ? "#4ade80" : "#1d4ed8",
+              boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.02)"
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Sistem Tersinkronisasi
+            </div>
+          </div>
+
+          {/* Right Section */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "0 0 auto" }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 22, fontWeight: 600, color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1, letterSpacing: 1 }}>
+                <span>{timeStr.replace(/\./g, ':')}</span><span style={{ fontSize: 12, fontWeight: isDark ? 400 : 500, color: "#f59e0b", marginLeft: 4, letterSpacing: 0.5 }}>WITA</span>
+              </div>
+              <div style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,0.45)" : "#94a3b8", marginTop: 2, letterSpacing: 0.3, textTransform: "capitalize" }}>
+                {dateStr.toLowerCase()}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {/* Theme Toggle Button */}
+              <div className="header-icon-btn" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")} title="Toggle Theme" style={{
+                width: 34, height: 34, borderRadius: 8, cursor: "pointer", transition: "all 0.2s", position: "relative",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+                color: isDark ? "rgba(255,255,255,0.6)" : "#64748b"
+              }}>
+                {isDark ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+                )}
+              </div>
+              <div className="header-icon-btn" title="Notifikasi" style={{
+                width: 34, height: 34, borderRadius: 8, cursor: "pointer", transition: "all 0.2s", position: "relative",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+                color: isDark ? "rgba(255,255,255,0.6)" : "#64748b"
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <div style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, background: "#ef4444", borderRadius: "50%", border: `1.5px solid ${isDark ? "#0a1628" : "#f8fafc"}` }}></div>
+              </div>
+              <div className="header-icon-btn" title="Settings" style={{
+                width: 34, height: 34, borderRadius: 8, cursor: "pointer", transition: "all 0.2s", position: "relative",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+                color: isDark ? "rgba(255,255,255,0.6)" : "#64748b"
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
             </div>
           </div>
         </div>
 
-        <div style={{display:"flex",alignItems:"center",gap:16}}>
-          {/* Theme Toggle - Minimalist SVG */}
-          <button onClick={()=>setTheme(t=>t==="dark"?"light":"dark")} style={{
-            width:38, height:38, borderRadius:"50%", border:`1px solid ${T.cardBorder}`,
-            background:T.cardBg, color:T.textMuted, cursor:"pointer", boxShadow:T.cardShadow,
-            display:"flex", alignItems:"center", justifyContent:"center", transition:"all 0.2s"
-          }} title="Toggle Theme">
-            {isDark ? (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
-            )}
-          </button>
-          
-          {/* Clock & Date Pill */}
-          <div style={{
-            display:"flex", alignItems:"center", gap:16, padding:"8px 24px",
-            background:T.cardBg, border:`1px solid ${T.cardBorder}`, borderRadius:24,
-            boxShadow:T.cardShadow, backdropFilter:"blur(10px)"
-          }}>
-            <div style={{display:"flex", alignItems:"center", gap:8, paddingRight:16, borderRight:`1px solid ${T.toggleBorder || T.cardBorder}`}}>
-              <div style={{fontFamily:"'JetBrains Mono', monospace",fontSize:18,fontWeight:800,letterSpacing:1,color:T.text,lineHeight:1}}>
-                {timeStr}
-              </div>
-              <div style={{fontSize:11,fontWeight:800,color:isDark?"#60a5fa":"#3b82f6",letterSpacing:1, background:isDark?"rgba(96,165,250,0.15)":"rgba(59,130,246,0.1)", padding:"3px 8px", borderRadius:6}}>
-                WITA
-              </div>
+        {/* Status Bar */}
+        <div style={{
+          display: "flex", alignItems: "center", padding: "7px 24px", gap: 24,
+          background: isDark ? "rgba(0,0,0,0.2)" : "#f8fafc",
+          borderTop: isDark ? "none" : "1px solid #f1f5f9"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Sumber Data</span>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#334155", fontWeight: 500 }}>BMKG &middot; Open-Meteo &middot; Windy.com API</span>
+          </div>
+          <div style={{ width: 1, height: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Pit Aktif</span>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#334155", fontWeight: 500 }}>2 / 2</span>
+          </div>
+          <div style={{ width: 1, height: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Mode</span>
+            <span style={{ color: "#22c55e", fontWeight: 500 }}>Operasional</span>
+          </div>
+
+          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{
+              fontSize: 10.5, display: "flex", alignItems: "center", gap: 5,
+              color: isDark ? "rgba(255,255,255,0.3)" : "#94a3b8"
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Diperbarui: <span>{timeStr.replace(/\./g, ':').replace(/\sWITA/i, '')}</span>
             </div>
-            <div style={{fontSize:11,fontWeight:700,color:T.textMuted,letterSpacing:1, textTransform:"uppercase"}}>
-              {dateStr}
+            <div className="header-icon-btn" onClick={() => window.location.reload()} style={{
+              display: "flex", alignItems: "center", gap: 5, borderRadius: 4, padding: "3px 8px", fontSize: 10, fontWeight: 500, cursor: "pointer", letterSpacing: 0.3, transition: "background 0.2s",
+              background: isDark ? "rgba(245,158,11,0.1)" : "#fff7ed",
+              border: `1px solid ${isDark ? "rgba(245,158,11,0.2)" : "#fed7aa"}`,
+              color: isDark ? "#f59e0b" : "#c2410c",
+            }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Refresh
             </div>
           </div>
         </div>
@@ -658,23 +789,113 @@ export default function CoalWeatherDashboard() {
           return (
             <div key={key} style={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
               
-              {/* Title Header */}
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                 <div style={{width: 6, height: 24, borderRadius: 3, background: titleColor}}></div>
-                 <div style={{fontSize: 20, fontWeight: 800, color: titleColor, letterSpacing: 2}}>
-                    PIT {key === "north" ? "UTARA" : "SELATAN"}
-                 </div>
-                 <div style={{marginLeft:"auto"}}>
-                    {worstRt==="high"||worstRt==="critical" ? (
-                      <div style={{background:worstRc.bg,border:`1px solid ${worstRc.border}`,color:worstRc.color,padding:"4px 12px",borderRadius:8,fontSize:11,fontWeight:700,letterSpacing:1,animation:"pulse 2s infinite"}}>
-                        ⚠️ {worstRc.label.toUpperCase()} DETECTED
+              {/* ── Title Header ── */}
+              <div className="pit-header" style={{
+                background: isDark ? "rgba(255,255,255,0.03)" : "#ffffff",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0"}`,
+                boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)"
+              }}>
+                <div className="pit-header-inner">
+                  {/* Color Bar */}
+                  <div className="color-bar" style={{ background: key === "north" ? "#2563eb" : "#d97706" }}></div>
+                  
+                  {/* Content */}
+                  <div className="pit-header-content">
+                    <div className="pit-icon" style={{
+                      background: key === "north" 
+                        ? (isDark ? "rgba(37,99,235,0.15)" : "#eff6ff") 
+                        : (isDark ? "rgba(217,119,6,0.15)" : "#fffbeb")
+                    }}>
+                      {key === "north" ? (
+                        <svg viewBox="0 0 24 24" style={{stroke: "#2563eb", strokeWidth: 2}} strokeLinecap="round" strokeLinejoin="round" fill="none">
+                          <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                          <path d="M12 21V3" />
+                          <path d="M8 7l4-4 4 4" />
+                        </svg>
+                      ) : (
+                        <svg viewBox="0 0 24 24" style={{stroke: "#d97706", strokeWidth: 2}} strokeLinecap="round" strokeLinejoin="round" fill="none">
+                          <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+                          <path d="M12 3v18" />
+                          <path d="M8 17l4 4 4-4" />
+                        </svg>
+                      )}
+                    </div>
+                    
+                    <div className="pit-title-group">
+                      <span className="pit-label" style={{ color: key === "north" ? "#2563eb" : "#d97706" }}>
+                        Area Operasi · {key === "north" ? "Utara" : "Selatan"}
+                      </span>
+                      <span className="pit-name" style={{ color: key === "north" ? (isDark ? "#60a5fa" : "#1e3a8a") : (isDark ? "#fbbf24" : "#78350f") }}>
+                        PIT {key === "north" ? "UTARA" : "SELATAN"}
+                      </span>
+                    </div>
+
+                    <div className="pit-hdiv" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0" }}></div>
+
+                    <div className="pit-meta" style={{ gap: 6 }}>
+                      <div className="meta-chip" style={{
+                        background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                        border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+                        color: isDark ? "rgba(255,255,255,0.7)" : "#475569"
+                      }}>
+                        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {key === "north" ? "North JO GAM" : "South JO GAM"}
+                      </div>
+                      <div className="meta-chip" style={{
+                        background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                        border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
+                        color: isDark ? "rgba(255,255,255,0.7)" : "#475569"
+                      }}>
+                        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {key === "north" ? "North JO IC" : "South JO IC"}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className="pit-status-wrap">
+                    <div className="pit-last-update" style={{ color: isDark ? "rgba(255,255,255,0.4)" : "#94a3b8" }}>
+                      <svg viewBox="0 0 24 24" style={{ stroke: isDark ? "rgba(255,255,255,0.3)" : "#cbd5e1" }}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      {timeStr.replace(/\./g, ':').replace(/\sWITA/i, '')}
+                    </div>
+                    {worstRt === "high" || worstRt === "critical" ? (
+                      <div className="status-badge" style={{
+                        background: isDark ? "rgba(249,115,22,0.12)" : "#fff7ed",
+                        borderColor: isDark ? "rgba(249,115,22,0.3)" : "#fdba74",
+                        color: isDark ? "#fb923c" : "#c2410c"
+                      }}>
+                         <div className="badge-dot pulse" style={{ background: "#f97316" }}></div>
+                         BAHAYA DETECTED
+                      </div>
+                    ) : worstRt === "medium" ? (
+                      <div className="status-badge" style={{
+                        background: isDark ? "rgba(234,179,8,0.12)" : "#fefce8",
+                        borderColor: isDark ? "rgba(234,179,8,0.3)" : "#fde047",
+                        color: isDark ? "#facc15" : "#a16207"
+                      }}>
+                         <div className="badge-dot pulse" style={{ background: "#eab308" }}></div>
+                         WASPADA
                       </div>
                     ) : (
-                      <div style={{background:rc.bg,border:`1px solid ${rc.border}`,color:rc.color,padding:"4px 12px",borderRadius:8,fontSize:11,fontWeight:700,letterSpacing:1}}>
-                        ✓ {rc.label.toUpperCase()}
+                      <div className="status-badge" style={{
+                        background: isDark ? "rgba(34,197,94,0.1)" : "#f0fdf4",
+                        borderColor: isDark ? "rgba(34,197,94,0.3)" : "#86efac",
+                        color: isDark ? "#4ade80" : "#15803d"
+                      }}>
+                         <div className="badge-dot" style={{ background: "#22c55e" }}></div>
+                         AMAN
                       </div>
                     )}
-                 </div>
+                  </div>
+                </div>
+                
+                {/* Bottom Accent Strip */}
+                <div className="pit-bottom-strip" style={{
+                  background: key === "north" 
+                    ? "linear-gradient(90deg, #2563eb 0%, #60a5fa 60%, transparent 100%)" 
+                    : "linear-gradient(90deg, #d97706 0%, #fbbf24 60%, transparent 100%)",
+                  opacity: 0.25
+                }}></div>
               </div>
 
               {/* Status Row */}
