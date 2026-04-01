@@ -69,6 +69,394 @@ const THEMES = {
   },
 };
 
+// ─── Atmospheric Canvas Background ───────────────────────────────────────────
+function AtmosphericCanvas({ hour, weatherCode, width, height }) {
+  const canvasRef = useRef(null);
+  const animRef   = useRef(null);
+  const stateRef  = useRef(null);
+
+  const isDay    = hour >= 6 && hour < 18;
+  const isRainy  = [60,61,63,65,80,95,97].includes(weatherCode);
+  const isStormy = [95,97].includes(weatherCode);
+  const isFoggy  = [5,10,45].includes(weatherCode);
+  const isCloudy = [3,4].includes(weatherCode) || isRainy || isFoggy;
+  const isClear  = !isCloudy && !isFoggy;
+  const cloudDensity = isStormy ? 8 : isCloudy ? 6 : isDay ? 3 : 1;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    // Util
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const TWO_PI = Math.PI * 2;
+
+    // Day clouds
+    const dayClouds = [];
+    if (isDay) {
+      for (let i = 0; i < cloudDensity; i++) {
+        dayClouds.push({
+          x: rand(0, W), y: rand(20, H * 0.55),
+          w: rand(60, 140), h: rand(20, 45),
+          speed: rand(0.10, 0.28), opacity: rand(0.50, 0.85),
+        });
+      }
+    }
+
+    // Night stars 3-tier
+    const stars = [];
+    if (!isDay) {
+      const tiers = [
+        { n: 120, rMin: 0.5, rMax: 1.0, opMin: 0.25, opMax: 0.55, tw: 1.5 },
+        { n:  60, rMin: 1.0, rMax: 1.8, opMin: 0.50, opMax: 0.80, tw: 1.0 },
+        { n:  18, rMin: 1.8, rMax: 2.8, opMin: 0.75, opMax: 1.00, tw: 0.6 },
+      ];
+      const COLORS = ['#ffffff','#ffffff','#ffffff','#fff8e0','#e8f0ff','#ffe4c8'];
+      for (const t of tiers) {
+        for (let i = 0; i < t.n; i++) {
+          stars.push({
+            x: rand(0, W), y: rand(0, H * 0.88),
+            r: rand(t.rMin, t.rMax),
+            op: rand(t.opMin, t.opMax),
+            twSpeed: rand(0.008, 0.03) * t.tw,
+            twOffset: rand(0, TWO_PI),
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+          });
+        }
+      }
+    }
+
+    // Night clouds (separate array from stars)
+    const nightClouds = [];
+    if (!isDay && isCloudy) {
+      const count = isStormy ? 5 : isFoggy ? 4 : 3;
+      for (let i = 0; i < count; i++) {
+        nightClouds.push({
+          x: rand(0, W), y: rand(15, H * 0.5),
+          w: rand(70, 140), h: rand(20, 42),
+          speed: rand(0.06, 0.18), opacity: rand(0.25, 0.48),
+        });
+      }
+    }
+
+    // Fog banks (10 layers, bidirectional, Y oscillation)
+    const fogBanks = [];
+    if (isFoggy) {
+      for (let i = 0; i < 10; i++) {
+        const layer = i / 10;
+        const dir = Math.random() > 0.5 ? 1 : -1;
+        fogBanks.push({
+          x: rand(0, W),
+          y: H - rand(0, H * 0.72),
+          w: W * rand(1.2, 2.0),
+          h: rand(40, 90),
+          speed: rand(0.03, 0.18) * dir,
+          opacity: isDay
+            ? (0.30 + layer * 0.22 + rand(0, 0.10))
+            : (0.10 + layer * 0.10 + rand(0, 0.08)),
+          phase: rand(0, TWO_PI),
+          phaseSpeed: rand(0.003, 0.008),
+        });
+      }
+    }
+
+    // Rain drops (z-depth + wind tilt)
+    const rainDrops = [];
+    if (isRainy) {
+      const rainCount = isStormy ? 70 : 45;
+      for (let i = 0; i < rainCount; i++) {
+        const z = rand(0.4, 1.5);
+        rainDrops.push({
+          x: rand(0, W), y: rand(0, H), z,
+          len: rand(10, 22) * z,
+          speedY: rand(5, 9) * z,
+          drift: rand(-0.8, -0.3) * z,
+          opacity: (isDay ? rand(0.25, 0.50) : rand(0.18, 0.40)) * Math.min(z, 1),
+        });
+      }
+    }
+
+    // Shooting stars (clear night only)
+    const shootingStars = [];
+    if (!isDay && isClear) {
+      shootingStars.push({
+        x: rand(W * 0.1, W * 0.9), y: rand(H * 0.05, H * 0.25),
+        vx: rand(-4.5, -2.5), vy: rand(1.0, 2.5),
+        life: 1.0, decay: rand(0.012, 0.022),
+        len: rand(80, 140),
+      });
+    }
+
+    // Dust motes (clear day)
+    const dustMotes = [];
+    if (isDay && isClear) {
+      for (let i = 0; i < 18; i++) {
+        dustMotes.push({
+          x: rand(0, W), y: rand(0, H),
+          r: rand(0.8, 1.8),
+          vx: rand(-0.12, 0.12), vy: rand(-0.08, -0.02),
+          op: rand(0.06, 0.18),
+          twSpeed: rand(0.005, 0.015),
+          twOffset: rand(0, TWO_PI),
+        });
+      }
+    }
+
+    // Wind vapor streaks
+    const windVapor = [];
+    {
+      const count = isStormy ? 18 : isCloudy ? 12 : 8;
+      for (let i = 0; i < count; i++) {
+        windVapor.push({
+          x: rand(-W * 0.3, W * 1.3),
+          y: rand(H * 0.05, H * 0.85),
+          len: rand(W * 0.08, W * 0.22),
+          speed: rand(0.4, 1.4),
+          opacity: rand(0.02, 0.06),
+          angle: rand(-0.15, 0.15),
+          thickness: rand(1, 3),
+        });
+      }
+    }
+
+    let shootTimer = rand(300, 600);
+
+    stateRef.current = {
+      dayClouds, stars, nightClouds, fogBanks,
+      rainDrops, shootingStars, dustMotes, windVapor,
+      frame: 0, lightningTimer: 0, shootTimer,
+    };
+
+    function drawCloud(x, y, w, h, opacity, nightMode) {
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      ctx.fillStyle = nightMode ? '#1e2a3a' : '#ffffff';
+      const rx = w / 2, ry = h / 2;
+      ctx.beginPath();
+      ctx.ellipse(x, y, rx, ry, 0, 0, TWO_PI);
+      ctx.ellipse(x - rx * 0.45, y + ry * 0.2,  rx * 0.60, ry * 0.7, 0, 0, TWO_PI);
+      ctx.ellipse(x + rx * 0.45, y + ry * 0.15, rx * 0.55, ry * 0.7, 0, 0, TWO_PI);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function animate() {
+      const st = stateRef.current;
+      const { dayClouds, stars, nightClouds, fogBanks,
+              rainDrops, shootingStars, dustMotes, windVapor, frame } = st;
+
+      // 1. Background gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      if (isDay) {
+        if (isStormy)      { grad.addColorStop(0, '#3a4a5a'); grad.addColorStop(1, '#6a7a8a'); }
+        else if (isFoggy)  { grad.addColorStop(0, '#a8b8c8'); grad.addColorStop(0.5, '#c4d4e0'); grad.addColorStop(1, '#d8e8f0'); }
+        else if (isCloudy) { grad.addColorStop(0, '#7fadd4'); grad.addColorStop(1, '#c8dff0'); }
+        else               { grad.addColorStop(0, '#4fb3e8'); grad.addColorStop(0.7, '#87ceeb'); grad.addColorStop(1, '#c9ecfa'); }
+      } else {
+        if (isFoggy) { grad.addColorStop(0, '#0a1222'); grad.addColorStop(0.6, '#111b2e'); grad.addColorStop(1, '#1c2a3a'); }
+        else         { grad.addColorStop(0, '#050c1a'); grad.addColorStop(0.6, '#0a1628'); grad.addColorStop(1, '#0f2040'); }
+      }
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      // 2. Lightning flash
+      if (isStormy) {
+        st.lightningTimer++;
+        if (st.lightningTimer > 80 && Math.random() > 0.94) {
+          ctx.fillStyle = 'rgba(255,255,220,0.18)';
+          ctx.fillRect(0, 0, W, H);
+          st.lightningTimer = 0;
+        }
+      }
+
+      // 3. Sun
+      if (isDay && !isStormy) {
+        const sunX = W * 0.82, sunY = H * 0.22;
+        const sunR = Math.min(W, H) * (isFoggy ? 0.07 : 0.09);
+        const haloR = isFoggy ? sunR * 3.0 : sunR * 2.2;
+        const halo = ctx.createRadialGradient(sunX, sunY, sunR * 0.4, sunX, sunY, haloR);
+        halo.addColorStop(0, `rgba(255,220,80,${isFoggy ? 0.12 : 0.35})`);
+        halo.addColorStop(1, 'rgba(255,220,80,0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath(); ctx.arc(sunX, sunY, haloR, 0, TWO_PI); ctx.fill();
+        ctx.globalAlpha = isFoggy ? 0.55 : 1.0;
+        ctx.fillStyle = isFoggy ? 'rgba(255,220,160,0.8)' : '#FFD84D';
+        ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, TWO_PI); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // 4. Moon
+      if (!isDay) {
+        const mx = W * 0.8, my = H * 0.22, mr = Math.min(W, H) * 0.07;
+        const moonAlpha = isFoggy ? 0.35 : 1.0;
+        const moonGlow = ctx.createRadialGradient(mx, my, mr * 0.3, mx, my, mr * 2.5);
+        moonGlow.addColorStop(0, `rgba(200,220,255,${0.2 * moonAlpha})`);
+        moonGlow.addColorStop(1, 'rgba(200,220,255,0)');
+        ctx.fillStyle = moonGlow;
+        ctx.beginPath(); ctx.arc(mx, my, mr * 2.5, 0, TWO_PI); ctx.fill();
+        ctx.globalAlpha = moonAlpha;
+        ctx.fillStyle = '#e8f0ff';
+        ctx.beginPath(); ctx.arc(mx, my, mr, 0, TWO_PI); ctx.fill();
+        ctx.fillStyle = isFoggy ? '#111b2e' : '#0a1628';
+        ctx.beginPath(); ctx.arc(mx + mr * 0.35, my - mr * 0.1, mr * 0.82, 0, TWO_PI); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // 5. Dust motes (clear day)
+      if (isDay && isClear) {
+        dustMotes.forEach(d => {
+          d.x += d.vx; d.y += d.vy;
+          if (d.x < -5) d.x = W + 5;
+          if (d.x > W + 5) d.x = -5;
+          if (d.y < -5) { d.y = H + 5; d.x = rand(0, W); }
+          const tw = 0.6 + 0.4 * Math.sin(frame * d.twSpeed + d.twOffset);
+          ctx.globalAlpha = d.op * tw;
+          ctx.fillStyle = '#fff8e0';
+          ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, TWO_PI); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // 6. Stars 3-tier
+      if (!isDay) {
+        const starMult = isFoggy ? 0.06 : isCloudy ? 0.35 : 1.0;
+        stars.forEach(s => {
+          const tw = 0.5 + 0.5 * Math.sin(frame * s.twSpeed + s.twOffset);
+          ctx.globalAlpha = s.op * tw * starMult;
+          ctx.fillStyle = s.color;
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TWO_PI); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+      }
+
+      // 7. Day clouds
+      if (isDay) {
+        dayClouds.forEach(c => {
+          c.x += c.speed;
+          if (c.x - c.w > W) c.x = -c.w;
+          drawCloud(c.x, c.y, c.w, c.h, c.opacity, false);
+        });
+      }
+
+      // 8. Night clouds
+      if (!isDay && isCloudy) {
+        nightClouds.forEach(c => {
+          c.x += c.speed;
+          if (c.x - c.w > W) c.x = -c.w;
+          drawCloud(c.x, c.y, c.w, c.h, c.opacity, true);
+        });
+      }
+
+      // 9. Fog banks (bidirectional + Y oscillation)
+      if (isFoggy) {
+        fogBanks.forEach(f => {
+          f.x += f.speed;
+          f.phase += f.phaseSpeed;
+          const wobY = Math.sin(f.phase) * 4;
+          if (f.speed > 0 && f.x - f.w / 2 > W) f.x = -f.w / 2;
+          if (f.speed < 0 && f.x + f.w / 2 < 0) f.x = W + f.w / 2;
+          ctx.save();
+          ctx.globalAlpha = f.opacity;
+          ctx.fillStyle = isDay ? 'rgba(215,228,238,1)' : 'rgba(130,155,175,1)';
+          ctx.beginPath();
+          ctx.ellipse(f.x, f.y + wobY, f.w / 2, f.h / 2, 0, 0, TWO_PI);
+          ctx.fill();
+          ctx.restore();
+        });
+      }
+
+      // 10. Wind vapor streaks
+      ctx.save();
+      windVapor.forEach(v => {
+        v.x += v.speed;
+        if (v.x > W + v.len) v.x = -v.len;
+        const tx = v.x + Math.cos(v.angle) * v.len;
+        const ty = v.y + Math.sin(v.angle) * v.len;
+        const vg = ctx.createLinearGradient(v.x, v.y, tx, ty);
+        vg.addColorStop(0, 'rgba(255,255,255,0)');
+        vg.addColorStop(0.4, `rgba(255,255,255,${v.opacity})`);
+        vg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = vg;
+        ctx.lineWidth = v.thickness;
+        ctx.beginPath(); ctx.moveTo(v.x, v.y); ctx.lineTo(tx, ty); ctx.stroke();
+      });
+      ctx.restore();
+
+      // 11. Rain (z-depth + wind tilt)
+      if (isRainy) {
+        ctx.save();
+        rainDrops.forEach(d => {
+          ctx.globalAlpha = d.opacity;
+          ctx.strokeStyle = isDay ? 'rgba(160,200,235,1)' : 'rgba(120,170,220,1)';
+          ctx.lineWidth = Math.max(0.5, d.z * 0.7);
+          ctx.beginPath();
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x + d.drift, d.y + d.len);
+          ctx.stroke();
+          d.y += d.speedY;
+          d.x += d.drift * 0.25;
+          if (d.y > H + d.len) { d.y = -d.len; d.x = rand(0, W); }
+          if (d.x < -50 || d.x > W + 50) d.x = rand(0, W);
+        });
+        ctx.globalAlpha = 1;
+        ctx.restore();
+      }
+
+      // 12. Shooting stars (malam cerah, rare)
+      if (!isDay && isClear) {
+        st.shootTimer--;
+        if (st.shootTimer <= 0 && shootingStars.length < 2) {
+          shootingStars.push({
+            x: rand(W * 0.05, W * 0.95), y: rand(H * 0.02, H * 0.30),
+            vx: rand(-5, -2.5), vy: rand(0.8, 2.5),
+            life: 1.0, decay: rand(0.010, 0.020),
+            len: rand(70, 150),
+          });
+          st.shootTimer = rand(400, 900);
+        }
+        for (let i = shootingStars.length - 1; i >= 0; i--) {
+          const s = shootingStars[i];
+          s.x += s.vx; s.y += s.vy; s.life -= s.decay;
+          if (s.life <= 0 || s.x < -50 || s.y > H) { shootingStars.splice(i, 1); continue; }
+          const tailX = s.x - s.vx * (s.len / Math.abs(s.vx));
+          const tailY = s.y - s.vy * (s.len / Math.abs(s.vx));
+          const sg = ctx.createLinearGradient(s.x, s.y, tailX, tailY);
+          sg.addColorStop(0, `rgba(255,255,255,${s.life * 0.9})`);
+          sg.addColorStop(0.3, `rgba(200,220,255,${s.life * 0.5})`);
+          sg.addColorStop(1, 'rgba(200,220,255,0)');
+          ctx.save();
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = sg;
+          ctx.lineWidth = s.life * 2;
+          ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(tailX, tailY); ctx.stroke();
+          ctx.globalAlpha = s.life * 0.8;
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.life * 1.5, 0, TWO_PI); ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      st.frame = frame + 1;
+      animRef.current = requestAnimationFrame(animate);
+    }
+
+    animate();
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, [isDay, weatherCode]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={width || 400}
+      height={height || 180}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }}
+    />
+  );
+}
+
 // ─── Hourly Chart Component (Trend Curve V2) ─────────────────────────────────
 function HourlyChart({ data, pitFilter }) {
   const isNorth = pitFilter === "north";
@@ -82,16 +470,41 @@ function HourlyChart({ data, pitFilter }) {
   const w = 1000;
   const h = 100;
   
-  // Create line points based on 24 hours mapping Rain Ratio / Intensity (tp)
-  const pointsArr = data.map((d, i) => {
+  const baseFloor = h - 15; // Mengangkat base chart 15px dari bawah
+
+  // Create points array for smooth curve
+  const pointsData = data.map((d, i) => {
     const x = (i / 23) * w;
-    // When d.tp is 0, y is at bottom (h). When maxTp, y is at top (0-ish)
-    const y = h - (d.tp / maxTp) * (h * 0.9); // max 90% height to keep a bit of padding above
-    return `${x},${y}`;
+    // Skala berdasarkan baseFloor agar titik teratas juga tidak terpotong (0.85 margin atas)
+    const y = baseFloor - (d.tp / maxTp) * (baseFloor * 0.85); 
+    return { x, y, tp: d.tp };
   });
-  const points = pointsArr.join(" ");
-  // Area polygon under the rain curve
-  const fillPoints = `0,${h} ${points} ${w},${h}`;
+
+  // Catmull-Rom to Cubic Bezier curve generator
+  const getSmoothPath = (pts) => {
+    if (pts.length === 0) return "";
+    let d = `M ${pts[0].x},${pts[0].y}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i === 0 ? i : i - 1];
+      const p1 = pts[i];
+      const p2 = pts[i + 1];
+      const p3 = pts[i + 2 < pts.length ? i + 2 : i + 1];
+
+      // Tension 0.15 for slight smoothing. Control points:
+      const tension = 0.2;
+      const cp1x = p1.x + (p2.x - p0.x) * tension;
+      const cp1y = p1.y + (p2.y - p0.y) * tension;
+      const cp2x = p2.x - (p3.x - p1.x) * tension;
+      const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+      d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+    }
+    return d;
+  };
+
+  const pathD = getSmoothPath(pointsData);
+  // Fill gradient turun menutup area sedikit dibawah garis terendah
+  const fillPathD = `${pathD} L ${w},${baseFloor + 10} L 0,${baseFloor + 10} Z`;
   
   return (
     <div style={{width:"100%", height:"100px", display:"flex", flexDirection:"column", marginTop:"12px", marginBottom:"12px"}}>
@@ -108,15 +521,15 @@ function HourlyChart({ data, pitFilter }) {
         </defs>
         
         {/* Rain Ratio Area Fill */}
-        <polygon points={fillPoints} fill={fillCurve} />
+        <path d={fillPathD} fill={fillCurve} />
         {/* Rain Ratio Line Outline */}
-        <polyline points={points} fill="none" stroke={strokeColor} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={pathD} fill="none" stroke={strokeColor} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
         
         {/* Rain Nodes Array */}
         {data.map((d, i) => {
           if (i % 3 !== 0) return null; // Show dots every 3 hours
           const cx = (i / 23) * w;
-          const cy = h - (d.tp / maxTp) * (h * 0.9);
+          const cy = baseFloor - (d.tp / maxTp) * (baseFloor * 0.85);
           return (
             <g key={`gn-${i}`}>
               <circle cx={cx} cy={cy} r="6" fill={d.tp>0?strokeColor:"#fff"} stroke={d.tp>0?"#fff":strokeColor} strokeWidth="2.5" />
@@ -356,14 +769,32 @@ function Spark({ data, color, height=32 }) {
   const max = Math.max(...data, 0.01);
   const min = Math.min(...data);
   const W = 80, H = height;
-  const pts = data.map((v,i) => {
-    const x = (i/(data.length-1))*W;
-    const y = H - ((v-min)/(max-min||1))*(H-4) - 2;
-    return `${x},${y}`;
-  }).join(" ");
+
+  const ptsData = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * W;
+    const y = H - ((v - min) / (max - min || 1)) * (H - 4) - 2;
+    return { x, y };
+  });
+
+  let d = `M ${ptsData[0].x},${ptsData[0].y}`;
+  for (let i = 0; i < ptsData.length - 1; i++) {
+    const p0 = ptsData[i === 0 ? i : i - 1];
+    const p1 = ptsData[i];
+    const p2 = ptsData[i + 1];
+    const p3 = ptsData[i + 2 < ptsData.length ? i + 2 : i + 1];
+
+    const tension = 0.2;
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+    d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+  }
+
   return (
     <svg width={W} height={H} style={{display:"block"}}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -503,12 +934,15 @@ function HourlyCarousel({ data, currHr, selectedDay, titleColor, T }) {
 export default function CoalWeatherDashboard() {
   const [now, setNow] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(0);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
   const [weatherData, setWeatherData] = useState(null);
   const [error, setError] = useState(null);
 
   const T = THEMES[theme];
   const isDark = theme === "dark";
+
+  // Jam WITA (UTC+8) — dipakai untuk logika siang/malam & current hour
+  const witaHour = (now.getUTCHours() + 8) % 24;
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -562,8 +996,8 @@ export default function CoalWeatherDashboard() {
     south: { pit: PIT_DATA.south, allDays: weatherData.south.allDays },
   };
 
-  const northCurrent = data.north.allDays[0].hours.reduce((acc,h) => h.h <= now.getHours() ? h : acc, data.north.allDays[0].hours[0]);
-  const southCurrent = data.south.allDays[0].hours.reduce((acc,h) => h.h <= now.getHours() ? h : acc, data.south.allDays[0].hours[0]);
+  const northCurrent = data.north.allDays[0].hours.reduce((acc,h) => h.h <= witaHour ? h : acc, data.north.allDays[0].hours[0]);
+  const southCurrent = data.south.allDays[0].hours.reduce((acc,h) => h.h <= witaHour ? h : acc, data.south.allDays[0].hours[0]);
   const activeWeather = { north: northCurrent, south: southCurrent };
 
   const timeStr = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit",timeZone:"Asia/Makassar"});
@@ -719,45 +1153,7 @@ export default function CoalWeatherDashboard() {
           </div>
         </div>
 
-        {/* Status Bar */}
-        <div className="header-status-bar" style={{
-          background: isDark ? "rgba(0,0,0,0.2)" : "#f8fafc",
-          borderTop: isDark ? "none" : "1px solid #f1f5f9"
-        }}>
-          <div className="status-sumber-data" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
-            <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Sumber Data</span>
-            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#334155", fontWeight: 500, whiteSpace: "nowrap" }}>BMKG &middot; Open-Meteo &middot; Windy.com API</span>
-          </div>
-          <div style={{ width: 1, height: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}></div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
-            <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Pit Aktif</span>
-            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#334155", fontWeight: 500 }}>2 / 2</span>
-          </div>
-          <div style={{ width: 1, height: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}></div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
-            <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Mode</span>
-            <span style={{ color: "#22c55e", fontWeight: 500 }}>Operasional</span>
-          </div>
 
-          <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{
-              fontSize: 10.5, display: "flex", alignItems: "center", gap: 5,
-              color: isDark ? "rgba(255,255,255,0.3)" : "#94a3b8"
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Diperbarui: <span>{timeStr.replace(/\./g, ':').replace(/\sWITA/i, '')}</span>
-            </div>
-            <div className="header-icon-btn" onClick={() => window.location.reload()} style={{
-              display: "flex", alignItems: "center", gap: 5, borderRadius: 4, padding: "3px 8px", fontSize: 10, fontWeight: 500, cursor: "pointer", letterSpacing: 0.3, transition: "background 0.2s",
-              background: isDark ? "rgba(245,158,11,0.1)" : "#fff7ed",
-              border: `1px solid ${isDark ? "rgba(245,158,11,0.2)" : "#fed7aa"}`,
-              color: isDark ? "#f59e0b" : "#c2410c",
-            }}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-              Refresh
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ── Main Layout: 2 Columns ── */}
@@ -766,7 +1162,7 @@ export default function CoalWeatherDashboard() {
           const pitData = data[key];
           const dData = pitData.allDays[selectedDay];
           const todayH = pitData.allDays[0].hours;
-          const currHr = dData.hours.reduce((acc, h) => h.h <= now.getHours() ? h : acc, dData.hours[0]);
+          const currHr = dData.hours.reduce((acc, h) => h.h <= witaHour ? h : acc, dData.hours[0]);
 
           const maxTemp = Math.max(...todayH.map(h=>h.t));
           const minTemp = Math.min(...todayH.map(h=>h.t));
@@ -828,26 +1224,7 @@ export default function CoalWeatherDashboard() {
                       </span>
                     </div>
 
-                    <div className="pit-hdiv" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0" }}></div>
 
-                    <div className="pit-meta" style={{ gap: 6 }}>
-                      <div className="meta-chip" style={{
-                        background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
-                        border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
-                        color: isDark ? "rgba(255,255,255,0.7)" : "#475569"
-                      }}>
-                        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        {key === "north" ? "North JO GAM" : "South JO GAM"}
-                      </div>
-                      <div className="meta-chip" style={{
-                        background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
-                        border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
-                        color: isDark ? "rgba(255,255,255,0.7)" : "#475569"
-                      }}>
-                        <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        {key === "north" ? "North JO IC" : "South JO IC"}
-                      </div>
-                    </div>
                   </div>
 
                   {/* Status Badge */}
@@ -898,28 +1275,78 @@ export default function CoalWeatherDashboard() {
 
               {/* Status Row */}
               <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "16px" }}>
-                <div style={{...cardStyle, padding:"16px", display:"flex", flexDirection:"column", justifyContent:"center"}}>
-                  <div style={{fontSize:10,fontWeight:700,color:T.textMuted,letterSpacing:2,marginBottom:12}}>STATUS SAAT INI</div>
-                  <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:16}}>
-                    <AnimatedWeatherIcon wc={currHr.wc} size={54}/>
-                    <div>
-                      <div style={{fontFamily:T.fontFamilyMono,fontSize:36,fontWeight:800,color:T.text,lineHeight:1}}>{currHr.t}°C</div>
-                      <div style={{fontSize:13,fontWeight:600,color:titleColor,marginTop:4}}>{WC_MAP[currHr.wc]?.label}</div>
-                    </div>
-                  </div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:8}}>
-                    {[
-                      {l:"Angin",v:`${currHr.ws} km/h`,icon:"💨",alert:currHr.ws>=25},
-                      {l:"Curah",v:`${currHr.tp} mm`,icon:"💧",alert:currHr.tp>5},
-                      {l:"Jarak",v:`${(currHr.vs/1000).toFixed(1)} km`,icon:"👁️",alert:currHr.vs<1000},
-                    ].map(m=>(
-                      <div key={m.l} style={{background:m.alert?"rgba(239,68,68,0.1)":"rgba(128,128,128,0.05)",borderRadius:8,padding:"8px"}}>
-                        <div style={{fontSize:10,fontWeight:600,color:T.textMuted,marginBottom:4}}>{m.icon} {m.l}</div>
-                        <div style={{fontFamily:T.fontFamilyMono,fontSize:13,fontWeight:700,color:m.alert?"#ef4444":T.text}}>{m.v}</div>
+                {/* ── STATUS SAAT INI with Atmospheric Background ── */}
+                {(() => {
+                  const atmoIsDay = witaHour >= 6 && witaHour < 18;
+                  const atmoTextColor = atmoIsDay ? '#1e293b' : '#e2e8f0';
+                  const atmoMuted    = atmoIsDay ? '#475569' : '#94a3b8';
+                  const atmoAccent   = atmoIsDay ? titleColor : (key === "north" ? '#60a5fa' : '#fbbf24');
+                  const atmoPanelBg  = atmoIsDay
+                    ? 'rgba(255,255,255,0.55)'
+                    : 'rgba(5,12,26,0.55)';
+                  return (
+                    <div style={{
+                      ...cardStyle,
+                      padding: 0,
+                      position: 'relative',
+                      overflow: 'hidden',
+                      minHeight: 180,
+                      background: 'transparent',
+                      border: `1px solid ${atmoIsDay ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                    }}>
+                      {/* Animated Sky Canvas */}
+                      <AtmosphericCanvas
+                        hour={witaHour}
+                        weatherCode={currHr.wc}
+                        width={400}
+                        height={180}
+                      />
+                      {/* Frosted Glass Content Overlay */}
+                      <div style={{
+                        position: 'relative', zIndex: 1,
+                        padding: '14px 16px',
+                        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                        height: '100%', boxSizing: 'border-box',
+                        background: atmoPanelBg,
+                        backdropFilter: 'blur(4px)',
+                        WebkitBackdropFilter: 'blur(4px)',
+                      }}>
+                        <div style={{fontSize:10, fontWeight:700, color: atmoMuted, letterSpacing:2, marginBottom:10}}>STATUS SAAT INI</div>
+                        <div style={{display:"flex", alignItems:"center", gap:14, marginBottom:14}}>
+                          <AnimatedWeatherIcon wc={currHr.wc} size={54}/>
+                          <div>
+                            <div style={{fontFamily:"'Rajdhani',sans-serif", fontSize:36, fontWeight:800, color: atmoTextColor, lineHeight:1, textShadow: atmoIsDay ? 'none' : '0 1px 8px rgba(0,0,0,0.5)'}}>
+                              {currHr.t}°C
+                            </div>
+                            <div style={{fontSize:13, fontWeight:600, color: atmoAccent, marginTop:4}}>
+                              {WC_MAP[currHr.wc]?.label}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:7}}>
+                          {[
+                            {l:"Angin", v:`${currHr.ws} km/h`, icon:"💨", alert:currHr.ws>=25},
+                            {l:"Curah", v:`${currHr.tp} mm`,   icon:"💧", alert:currHr.tp>5},
+                            {l:"Jarak", v:`${(currHr.vs/1000).toFixed(1)} km`, icon:"👁️", alert:currHr.vs<1000},
+                          ].map(m=>(
+                            <div key={m.l} style={{
+                              background: m.alert
+                                ? 'rgba(239,68,68,0.18)'
+                                : atmoIsDay ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.25)',
+                              borderRadius:8, padding:"7px 8px",
+                              backdropFilter:'blur(2px)',
+                              border: `1px solid ${m.alert ? 'rgba(239,68,68,0.25)' : 'rgba(255,255,255,0.12)'}`,
+                            }}>
+                              <div style={{fontSize:10, fontWeight:600, color: atmoMuted, marginBottom:3}}>{m.icon} {m.l}</div>
+                              <div style={{fontFamily:"'Rajdhani',sans-serif", fontSize:14, fontWeight:700, color: m.alert ? '#ef4444' : atmoTextColor}}>{m.v}</div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  );
+                })()}
+
                 
                 {/* Highlights 2x2 */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
@@ -1029,6 +1456,9 @@ export default function CoalWeatherDashboard() {
           <span style={{fontWeight:600, color:T.textMuted}}>Rio Darma Fredika</span>
           <span style={{opacity:0.4}}>·</span>
           <span>Since Maret 2026</span>
+          <span style={{opacity:0.4}}>·</span>
+          <span>Sumber Data:</span>
+          <span style={{fontWeight:600, color:T.textMuted}}>BMKG &middot; Open-Meteo &middot; Windy.com API</span>
         </span>
       </div>
 
