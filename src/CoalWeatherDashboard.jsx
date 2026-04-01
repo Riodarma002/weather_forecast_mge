@@ -570,10 +570,10 @@ export default function CoalWeatherDashboard() {
   const dateStr = now.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric",timeZone:"Asia/Makassar"});
 
   return (
-    <div style={{
+    <div className="dashboard-root" style={{
       minHeight:"100vh", background:T.bg,
       fontFamily:"'Inter', system-ui, -apple-system, sans-serif",
-      color:T.text, padding:"16px 24px", boxSizing:"border-box",
+      color:T.text, boxSizing:"border-box",
       backgroundImage:T.bgGrad, transition:"background 0.3s, color 0.3s",
       display: "flex", flexDirection: "column", gap: "16px",
     }}>
@@ -587,12 +587,11 @@ export default function CoalWeatherDashboard() {
         boxShadow: isDark ? "none" : "0 1px 4px rgba(0,0,0,0.06)"
       }}>
 
-        <div style={{
-          display: "flex", alignItems: "center", padding: "14px 24px", gap: 0,
+        <div className="header-top-row" style={{
           borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9"}`
         }}>
           {/* Brand Section */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, flex: "0 0 auto" }}>
+          <div className="header-brand">
             <div style={{
               width: 42, height: 42, background: isDark ? "rgba(255,255,255,0.05)" : "#ffffff", borderRadius: 8,
               border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"}`,
@@ -621,10 +620,10 @@ export default function CoalWeatherDashboard() {
             </div>
           </div>
 
-          <div style={{ width: 1, height: 36, background: isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0", margin: "0 20px" }}></div>
+          <div className="header-divider" style={{ background: isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0" }}></div>
 
           {/* Sites Section */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
+          <div className="header-sites">
             <div style={{
               display: "flex", alignItems: "center", gap: 6,
               background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
@@ -648,7 +647,7 @@ export default function CoalWeatherDashboard() {
           </div>
 
           {/* Alert Strip (Static but layout ready) */}
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "0 20px" }}>
+          <div className="header-alerts">
             <div className="alert-pill-hover" style={{
               display: "flex", alignItems: "center", gap: 7, padding: "5px 12px", borderRadius: 20, fontSize: 11.5, fontWeight: 500, cursor: "pointer", transition: "transform 0.15s",
               background: isDark ? "rgba(234,88,12,0.15)" : "#fff7ed",
@@ -672,7 +671,7 @@ export default function CoalWeatherDashboard() {
           </div>
 
           {/* Right Section */}
-          <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "0 0 auto" }}>
+          <div className="header-right">
             <div style={{ textAlign: "right" }}>
               <div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: 22, fontWeight: 600, color: isDark ? "#f8fafc" : "#0f172a", lineHeight: 1, letterSpacing: 1 }}>
                 <span>{timeStr.replace(/\./g, ':')}</span><span style={{ fontSize: 12, fontWeight: isDark ? 400 : 500, color: "#f59e0b", marginLeft: 4, letterSpacing: 0.5 }}>WITA</span>
@@ -721,14 +720,13 @@ export default function CoalWeatherDashboard() {
         </div>
 
         {/* Status Bar */}
-        <div style={{
-          display: "flex", alignItems: "center", padding: "7px 24px", gap: 24,
+        <div className="header-status-bar" style={{
           background: isDark ? "rgba(0,0,0,0.2)" : "#f8fafc",
           borderTop: isDark ? "none" : "1px solid #f1f5f9"
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
+          <div className="status-sumber-data" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
             <span style={{ color: isDark ? "rgba(255,255,255,0.25)" : "#94a3b8", fontSize: 10, textTransform: "uppercase", letterSpacing: 0.5 }}>Sumber Data</span>
-            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#334155", fontWeight: 500 }}>BMKG &middot; Open-Meteo &middot; Windy.com API</span>
+            <span style={{ color: isDark ? "rgba(255,255,255,0.65)" : "#334155", fontWeight: 500, whiteSpace: "nowrap" }}>BMKG &middot; Open-Meteo &middot; Windy.com API</span>
           </div>
           <div style={{ width: 1, height: 14, background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}></div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: isDark ? "rgba(255,255,255,0.4)" : "#475569" }}>
@@ -763,7 +761,7 @@ export default function CoalWeatherDashboard() {
       </div>
 
       {/* ── Main Layout: 2 Columns ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", flex: 1, minHeight: 0 }}>
+      <div className="main-grid">
         {["north", "south"].map(key => {
           const pitData = data[key];
           const dData = pitData.allDays[selectedDay];
