@@ -944,6 +944,15 @@ export default function CoalWeatherDashboard() {
   // Jam WITA (UTC+8) — dipakai untuk logika siang/malam & current hour
   const witaHour = (now.getUTCHours() + 8) % 24;
 
+  // Auto-switch Theme (Siang: Light, Malam: Dark)
+  useEffect(() => {
+    if (witaHour >= 6 && witaHour < 18) {
+      setTheme("light");
+    } else {
+      setTheme("dark");
+    }
+  }, [witaHour]);
+
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(t);
