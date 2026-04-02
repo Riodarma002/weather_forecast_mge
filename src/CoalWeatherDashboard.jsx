@@ -1450,20 +1450,9 @@ export default function CoalWeatherDashboard() {
 
 
       {/* ── Copyright Footer ── */}
-      <div style={{
-        marginTop: 16,
-        marginBottom: 12,
-        paddingTop:8,
+      <div className="footer-copyright" style={{
         borderTop:`1px solid ${isDark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.06)"}`,
-        display:"flex",
-        alignItems:"center",
-        justifyContent:"center",
-        gap:8,
-        flexWrap:"wrap",
-        marginLeft: -24,
-        marginRight: -24,
-        paddingLeft: 24,
-        paddingRight: 24,
+        color:T.textDim,
       }}>
         <span style={{
           fontSize:10, color:T.textDim, letterSpacing:"0.5px",

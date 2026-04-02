@@ -201,6 +201,29 @@ body {
 .pit-last-update svg { width: 11px; height: 11px; fill: none; stroke-width: 1.5; stroke-linecap: round; }
 .pit-bottom-strip { height: 3px; width: 100%; }
 
+/* ─── FOOTER COPYRIGHT ─── */
+.footer-copyright {
+  margin-top: 16px;
+  margin-bottom: 12px;
+  padding-top: 8px;
+  margin-left: -24px;
+  margin-right: -24px;
+  padding-left: 24px;
+  padding-right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.footer-copyright span {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* ═══════════════════════════════════════════════
    RESPONSIVE BREAKPOINTS
 ═══════════════════════════════════════════════ */
@@ -213,6 +236,7 @@ body {
   .header-status-bar { padding: 6px 20px; gap: 16px; }
   .main-grid { gap: 16px; }
   .dashboard-root { padding: 14px 20px; }
+  .footer-copyright { margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px; }
 }
 
 /* ── Tablet Landscape ≤ 1024px ── */
@@ -228,6 +252,7 @@ body {
   .main-grid { gap: 14px; }
   .pit-name { font-size: 17px; }
   .meta-chip { font-size: 10px; padding: 3px 7px; }
+  .footer-copyright { margin-left: -16px; margin-right: -16px; padding-left: 16px; padding-right: 16px; }
 }
 
 /* ── Tablet Portrait ≤ 768px ── */
@@ -235,28 +260,28 @@ body {
   .dashboard-root { padding: 10px 12px; gap: 10px; }
 
   /* Header stacks into 2 rows */
-  .header-top-row { 
-    padding: 10px 14px; 
-    flex-wrap: wrap; 
+  .header-top-row {
+    padding: 10px 14px;
+    flex-wrap: wrap;
     row-gap: 8px;
     align-items: center;
   }
   .header-brand { order: 1; }
   .header-divider { display: none; }
   .header-sites { display: none; }
-  .header-alerts { 
-    order: 3; 
-    flex: 0 0 100%; 
-    justify-content: flex-start; 
+  .header-alerts {
+    order: 3;
+    flex: 0 0 100%;
+    justify-content: flex-start;
     padding: 0 0 4px 0;
     gap: 8px;
   }
   .header-right { order: 2; flex: 1; justify-content: flex-end; }
 
   /* Status bar: scrollable, hide source data label on small */
-  .header-status-bar { 
-    padding: 6px 14px; 
-    gap: 10px; 
+  .header-status-bar {
+    padding: 6px 14px;
+    gap: 10px;
     overflow-x: auto;
     flex-wrap: nowrap;
     -webkit-overflow-scrolling: touch;
@@ -264,9 +289,9 @@ body {
   .status-sumber-data { display: none; }
 
   /* Main grid: single column */
-  .main-grid { 
-    grid-template-columns: 1fr; 
-    gap: 12px; 
+  .main-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   /* Pit header compact — prevent wrapping */
@@ -282,6 +307,10 @@ body {
   .pit-status-wrap { padding: 0 10px; gap: 6px; flex-shrink: 0; }
   .status-badge { padding: 5px 9px; font-size: 10px; gap: 5px; }
   .pit-last-update { display: none; }
+
+  /* Footer responsive */
+  .footer-copyright { margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
+  .footer-copyright span { font-size: 9px; gap: 4px; }
 }
 
 /* ── Mobile ≤ 480px ── */
@@ -309,6 +338,18 @@ body {
 
   /* Grid gap tighter */
   .main-grid { gap: 10px; }
+
+  /* Footer responsive mobile */
+  .footer-copyright {
+    margin-top: 12px;
+    margin-bottom: 8px;
+    margin-left: -10px;
+    margin-right: -10px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .footer-copyright span { font-size: 8px; gap: 3px; }
+  .footer-copyright span span:last-child { display: none; } /* Hide sumber data on very small screens */
 }
 
 
