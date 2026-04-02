@@ -1451,7 +1451,8 @@ export default function CoalWeatherDashboard() {
 
       {/* ── Copyright Footer ── */}
       <div style={{
-        marginTop:16,
+        marginTop: 32,
+        marginBottom: 24,
         paddingTop:12,
         borderTop:`1px solid ${isDark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.06)"}`,
         display:"flex",
