@@ -257,12 +257,16 @@ def generate_weather_data():
                 tp_3h = round(sum(tp_window), 1)
 
                 bmkg = None
+                bmkg_offset_used = None
                 if has_bmkg:
-                    for offset in [0, -3, 3, -6, 6, -9, 9]:
+                    # Cari slot BMKG terdekat — BMKG hanya ada setiap 3 jam (0,3,6,9,12,15,18,21)
+                    # Prioritaskan offset terkecil dulu agar jam ganjil (cth: 17) menemukan 15 atau 18
+                    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8, 9, -9]:
                         candidate_dt = today + timedelta(days=day_idx, hours=h + offset)
                         key = candidate_dt.strftime("%Y-%m-%d %H")
                         if key in bmkg_lookup:
                             bmkg = bmkg_lookup[key]
+                            bmkg_offset_used = abs(offset)
                             break
 
                 t_final = t_om
@@ -280,9 +284,11 @@ def generate_weather_data():
                 if bmkg:
                     bwc = bmkg.get("weather_code_bmkg", 0)
                     wc_final = bwc
-                    
-                    # Logika Override: Jika BMKG bilang tidak hujan, paksa hujan jadi 0 agar grafik sesuai
-                    if bwc in [0, 1, 2, 3, 4, 5, 10, 45]:
+
+                    # Override curah hujan: jika BMKG bilang tidak hujan DAN slot BMKG dekat (<=2 jam)
+                    # Jika jauh (>2 jam), percayakan Open-Meteo agar tidak salah membatalkan hujan nyata
+                    bmkg_is_close = (bmkg_offset_used is not None and bmkg_offset_used <= 2)
+                    if bwc in [0, 1, 2, 3, 4, 5, 10, 45] and bmkg_is_close:
                         tp_final = 0.0
                         if len(tp_window) > 0: tp_window[-1] = 0.0
                         tp_3h = round(sum(tp_window), 1)
