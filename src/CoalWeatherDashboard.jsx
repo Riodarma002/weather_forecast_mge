@@ -937,6 +937,7 @@ export default function CoalWeatherDashboard() {
   const [theme, setTheme] = useState("light");
   const [weatherData, setWeatherData] = useState(null);
   const [error, setError] = useState(null);
+  const [dataFetchedAt, setDataFetchedAt] = useState(null); // Waktu terakhir data berhasil di-fetch
 
   const T = THEMES[theme];
   const isDark = theme === "dark";
@@ -975,6 +976,7 @@ export default function CoalWeatherDashboard() {
         
         const d = await response.json();
         setWeatherData(d);
+        setDataFetchedAt(new Date()); // Catat waktu fetch berhasil (waktu browser, bukan server)
       } catch (err) {
         setError(err.message);
       }
@@ -1117,7 +1119,10 @@ export default function CoalWeatherDashboard() {
               boxShadow: isDark ? "none" : "0 1px 2px rgba(0,0,0,0.02)"
             }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              Sistem Tersinkronisasi
+              {dataFetchedAt
+                ? `Data pukul ${dataFetchedAt.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Makassar" })} WITA`
+                : "Sistem Tersinkronisasi"
+              }
             </div>
           </div>
 

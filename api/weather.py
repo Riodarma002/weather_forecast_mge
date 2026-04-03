@@ -375,7 +375,7 @@ class handler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self._send_cors_headers()
             # Cache di Vercel Edge selama 1 jam, stale-while-revalidate 10 menit
-            self.send_header('Cache-Control', 's-maxage=3600, stale-while-revalidate=600')
+            self.send_header('Cache-Control', 's-maxage=1800, stale-while-revalidate=300')
             self.end_headers()
             
             # Write payload format UTF-8
