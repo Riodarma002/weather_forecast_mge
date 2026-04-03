@@ -189,7 +189,8 @@ def fetch_openmeteo(lat, lon, om_client):
 # ─── MAIN ENGINE RUNNER ───────────────────────────────────────────────────────
 def generate_weather_data():
     # Gunakan memory backend agar kompatibel dengan Vercel (filesystem read-only)
-    cache_session  = requests_cache.CachedSession(backend='memory', expire_after=3600)
+    # IMPROVED: Dari 1 jam ke 15 menit untuk match dengan update interval baru
+    cache_session  = requests_cache.CachedSession(backend='memory', expire_after=900)
     retry_session  = retry(cache_session, retries=1, backoff_factor=0.1)
     om_client      = openmeteo_requests.Client(session=retry_session)
 
@@ -258,15 +259,25 @@ def generate_weather_data():
 
                 bmkg = None
                 bmkg_offset_used = None
+                bmkg_confidence = 0.0  # NEW: Confidence score 0-1
                 if has_bmkg:
                     # Cari slot BMKG terdekat — BMKG hanya ada setiap 3 jam (0,3,6,9,12,15,18,21)
-                    # Prioritaskan offset terkecil dulu agar jam ganjil (cth: 17) menemukan 15 atau 18
-                    for offset in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8, -8, 9, -9]:
+                    # FIXED: Limit offset to ±2 hours max untuk akurasi (sebelumnya ±9 jam)
+                    # Reject BMKG data jika terlalu jauh secara temporal
+                    for offset in [0, 1, -1, 2, -2]:
                         candidate_dt = today + timedelta(days=day_idx, hours=h + offset)
                         key = candidate_dt.strftime("%Y-%m-%d %H")
                         if key in bmkg_lookup:
                             bmkg = bmkg_lookup[key]
                             bmkg_offset_used = abs(offset)
+                            # NEW: Calculate confidence based on temporal distance
+                            # offset 0 = 100% confidence, offset 1 = 80%, offset 2 = 50%
+                            if offset == 0:
+                                bmkg_confidence = 1.0
+                            elif abs(offset) == 1:
+                                bmkg_confidence = 0.8
+                            else:  # offset 2
+                                bmkg_confidence = 0.5
                             break
 
                 t_final = t_om
@@ -285,20 +296,30 @@ def generate_weather_data():
                     bwc = bmkg.get("weather_code_bmkg", 0)
                     wc_final = bwc
 
-                    # Override curah hujan: jika BMKG bilang tidak hujan DAN slot BMKG dekat (<=2 jam)
-                    # Jika jauh (>2 jam), percayakan Open-Meteo agar tidak salah membatalkan hujan nyata
-                    bmkg_is_close = (bmkg_offset_used is not None and bmkg_offset_used <= 2)
-                    if bwc in [0, 1, 2, 3, 4, 5, 10, 45] and bmkg_is_close:
+                    # IMPROVED: Smart precipitation override dengan confidence scoring
+                    # Hanya override precipitation jika BMKG confidence tinggi (>= 0.8)
+                    # Ini mencegah pembatalan hujan nyata dari Open-Meteo
+                    if bmkg_confidence >= 0.8 and bwc in [0, 1, 2, 3, 4, 5, 10, 45]:
                         tp_final = 0.0
                         if len(tp_window) > 0: tp_window[-1] = 0.0
                         tp_3h = round(sum(tp_window), 1)
+                    # PARTIAL OVERRIDE: Jika confidence medium (0.5-0.8), blend dengan Open-Meteo
+                    elif bmkg_confidence >= 0.5 and bwc in [0, 1, 2, 3, 4, 5, 10, 45]:
+                        # Blend: 50% BMKG (no rain) + 50% Open-Meteo
+                        tp_final = round(tp_final * 0.5, 1)
+                        if len(tp_window) > 0: tp_window[-1] = tp_final
+                        tp_3h = round(sum(tp_window), 1)
 
-                    if bmkg.get("t_bmkg") is not None: t_final = int(bmkg["t_bmkg"])
-                    if bmkg.get("hu") is not None: hu_final = int(bmkg["hu"])
-                    if bmkg.get("wd") not in [None, "?"]: wd_final = bmkg["wd"]
+                    # Temperature/humidity: hanya gunakan BMKG jika confidence >= 0.8
+                    if bmkg_confidence >= 0.8:
+                        if bmkg.get("t_bmkg") is not None: t_final = int(bmkg["t_bmkg"])
+                        if bmkg.get("hu") is not None: hu_final = int(bmkg["hu"])
+                    # Cloud cover dan visibility: gunakan BMKG untuk semua confidence > 0
                     if bmkg.get("tcc") is not None: tcc_final = int(bmkg["tcc"])
                     if bmkg.get("vs_km") is not None: vs_km_final = bmkg["vs_km"]
                     if bmkg.get("vs_text"): vs_text_final = bmkg["vs_text"]
+                    # Wind direction dan weather description: selalu gunakan BMKG jika ada
+                    if bmkg.get("wd") not in [None, "?"]: wd_final = bmkg["wd"]
                     if bmkg.get("weather_desc"): wd_desc = bmkg["weather_desc"]
                     if bmkg.get("weather_desc_en"): wd_desc_en = bmkg["weather_desc_en"]
 
@@ -329,6 +350,7 @@ def generate_weather_data():
                     "weather_desc_en": wd_desc_en,
                     "risk":          risk,
                     "source":        "bmkg+openmeteo" if bmkg else "openmeteo",
+                    "bmkg_confidence": round(bmkg_confidence, 2) if bmkg else 0.0,
                 })
 
             out_all_days.append({"hours": day_hours})
@@ -374,8 +396,9 @@ class handler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
             self._send_cors_headers()
-            # Cache di Vercel Edge selama 1 jam, stale-while-revalidate 10 menit
-            self.send_header('Cache-Control', 's-maxage=1800, stale-while-revalidate=300')
+            # Cache di Vercel Edge selama 15 menit, stale-while-revalidate 3 menit
+            # IMPROVED: Dari 30 menit ke 15 menit untuk match dengan frontend update interval
+            self.send_header('Cache-Control', 's-maxage=900, stale-while-revalidate=180')
             self.end_headers()
             
             # Write payload format UTF-8

@@ -985,8 +985,9 @@ export default function CoalWeatherDashboard() {
     // Tarikan data pertama saat dashboard dibuka
     fetchWeather();
 
-    // Timer Auto-Refresh setiap 59 menit (3.540.000 ms) agar lolos limitasi / cache expiry yang 1 jam (3600 detik)
-    const intervalTimer = setInterval(fetchWeather, 3540000);
+    // Timer Auto-Refresh setiap 15 menit (900.000 ms) untuk update yang lebih responsif
+    // IMRPOVED: Dari 59 menit ke 15 menit untuk akurasi better di cuaca tropis dinamis
+    const intervalTimer = setInterval(fetchWeather, 900000);
     
     // Cleanup timer ketika komponen dihentikan
     return () => clearInterval(intervalTimer);
