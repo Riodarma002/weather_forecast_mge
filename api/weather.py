@@ -5,7 +5,7 @@ import openmeteo_requests
 import requests_cache
 from retry_requests import retry
 from datetime import datetime, timedelta
-import tempfile
+import requests
 import os
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
@@ -19,16 +19,12 @@ BMKG_API_BASE = "https://api.bmkg.go.id/publik/prakiraan-cuaca"
 
 BMKG_PRIMARY = "64.08.16.2003"  # Pengadan — hardcoded, dikonfirmasi user
 
-# Kandidat fallback
+# Kandidat fallback — Dikurangi agar tidak timeout di Vercel (maks 4)
 BMKG_CANDIDATE_ADM4 = [
     "64.08.16.2003",  # ✅ UTAMA: Pengadan
     "64.08.16.2001",  # Karangan
-    "64.08.16.2002",
-    "64.08.16.2004",
-    "64.08.15.2001", 
-    "64.08.15.2002",
-    "64.02.09.2001",  # Tenggarong Seberang
-    "64.02.08.2001",  # Sebulu
+    "64.08.15.2001",  # Kecamatan terdekat
+    "64.02.09.2001",  # Tenggarong Seberang (fallback terjauh)
 ]
 
 MAX_BMKG_DISTANCE_KM = 50.0
@@ -88,7 +84,7 @@ def fetch_bmkg_nearest(pit_lat, pit_lon, cache_session):
     for adm4 in BMKG_CANDIDATE_ADM4:
         try:
             url = f"{BMKG_API_BASE}?adm4={adm4}"
-            r = cache_session.get(url, timeout=5)  # Fast timeout for Serverless
+            r = cache_session.get(url, timeout=3)  # Ketat 3 detik agar tidak timeout Vercel
             if r.status_code != 200:
                 continue
             j = r.json()
@@ -192,10 +188,9 @@ def fetch_openmeteo(lat, lon, om_client):
 
 # ─── MAIN ENGINE RUNNER ───────────────────────────────────────────────────────
 def generate_weather_data():
-    # Gunakan folder temp sistem dinamis agar jalan di Windows (lokal) & Vercel Linux
-    cache_path = os.path.join(tempfile.gettempdir(), 'vercel_weather_cache')
-    cache_session  = requests_cache.CachedSession(cache_path, backend='sqlite', expire_after=3600)
-    retry_session  = retry(cache_session, retries=2, backoff_factor=0.2)
+    # Gunakan memory backend agar kompatibel dengan Vercel (filesystem read-only)
+    cache_session  = requests_cache.CachedSession(backend='memory', expire_after=3600)
+    retry_session  = retry(cache_session, retries=1, backoff_factor=0.1)
     om_client      = openmeteo_requests.Client(session=retry_session)
 
     # Timezone WITA manual offset (UTC+8) agar tidak bergantung pada ZoneInfo eksternal
@@ -351,6 +346,18 @@ def generate_weather_data():
 
 # ─── VERCEL SERVERLESS HANDLER ────────────────────────────────────────────────
 class handler(BaseHTTPRequestHandler):
+
+    def _send_cors_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+
+    def do_OPTIONS(self):
+        """Handle CORS preflight request"""
+        self.send_response(200)
+        self._send_cors_headers()
+        self.end_headers()
+
     def do_GET(self):
         try:
             # Generate the weather payload
@@ -360,9 +367,9 @@ class handler(BaseHTTPRequestHandler):
             # Send HTTP Response
             self.send_response(200)
             self.send_header('Content-type', 'application/json; charset=utf-8')
-            # Bypass CORS check for external clients if needed
-            self.send_header('Access-Control-Allow-Origin', '*') 
-            self.send_header('Cache-Control', 's-maxage=3600, stale-while-revalidate=600')  # Cache deeply to preserve compute and BMKG quotas
+            self._send_cors_headers()
+            # Cache di Vercel Edge selama 1 jam, stale-while-revalidate 10 menit
+            self.send_header('Cache-Control', 's-maxage=3600, stale-while-revalidate=600')
             self.end_headers()
             
             # Write payload format UTF-8
@@ -371,7 +378,9 @@ class handler(BaseHTTPRequestHandler):
             # Handle Errors Contextually for the Client
             self.send_response(500)
             self.send_header('Content-type', 'application/json')
+            self._send_cors_headers()
             self.end_headers()
-            error_msg = json.dumps({"error": str(e)})
+            import traceback
+            error_msg = json.dumps({"error": str(e), "detail": traceback.format_exc()})
             self.wfile.write(error_msg.encode('utf-8'))
         return
